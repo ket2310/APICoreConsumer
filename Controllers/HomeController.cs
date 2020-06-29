@@ -1,18 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using APICoreConsumer.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using APICoreConsumer.Models;
-using System.Net.Http;
 using Newtonsoft.Json;
+using System.Collections.Generic;
+using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace APICoreConsumer.Controllers
 {
     public class HomeController : Controller
     {
+        const string myUrl = "https://localhost:44348/api/TodoItems/";
+
         private readonly ILogger<HomeController> _logger;
 
         public HomeController(ILogger<HomeController> logger)
@@ -25,7 +24,7 @@ namespace APICoreConsumer.Controllers
             List<TodoItem> tdis = new List<TodoItem>();
             using (var httpClient = new HttpClient())
             {
-                using (var response = await httpClient.GetAsync("https://localhost:44348/api/TodoItems"))
+                using (var response = await httpClient.GetAsync(myUrl))
                 {
                     string apiResponse = await response.Content.ReadAsStringAsync();
                     tdis = JsonConvert.DeserializeObject<List<TodoItem>>(apiResponse);
@@ -43,10 +42,29 @@ namespace APICoreConsumer.Controllers
         {
             TodoItem todoItem = new TodoItem();
             var httpClient = new HttpClient();
-            var response = await httpClient.GetAsync("http://localhost:44348/api/TodoItems/" + id).ConfigureAwait(false);
+            var response = await httpClient.GetAsync(myUrl + id).ConfigureAwait(false);
 
             if (response.IsSuccessStatusCode) 
             { 
+                {
+                    string apiResponse = await response.Content.ReadAsStringAsync();
+                    todoItem = JsonConvert.DeserializeObject<TodoItem>(apiResponse);
+                }
+            }
+            return View(todoItem);
+        }
+
+        public ViewResult AddTodoItem() => View();
+
+        [HttpPost]
+        public async Task<IActionResult> AddTodoItem(TodoItem tdi)
+        {
+            TodoItem todoItem = new TodoItem();
+            using(var cli = new HttpClient())
+            {
+                StringContent content = new StringContent(JsonConvert.SerializeObject(tdi), System.Text.Encoding.UTF8, "application/json");
+
+                using (var response = await cli.PostAsync(myUrl + "CreateTodo/", content))
                 {
                     string apiResponse = await response.Content.ReadAsStringAsync();
                     todoItem = JsonConvert.DeserializeObject<TodoItem>(apiResponse);
